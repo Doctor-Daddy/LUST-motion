@@ -14,7 +14,7 @@
 
 #ifdef OSSM_REF
 #include <OSSMReferenceBoard.h>
-#elifdef PROTO_EJ2640
+#elif defined(PROTO_EJ2640)
 #include <ProtoEJ2640.h>
 // else throw compile error
 #else
@@ -38,7 +38,7 @@ enum MotorDriver
     VIRTUAL,
     GENERIC_STEPPER,
     OSSM_REF_BOARD_V2,
-    PROTO_EJ2640
+    PROTO_EJ2640,
     IHSV_SERVO_V6
 };
 

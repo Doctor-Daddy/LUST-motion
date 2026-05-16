@@ -28,7 +28,8 @@ typedef struct
   int stepPin;          /*> Pin connected to the STEP input */
   int directionPin;     /*> Pin connected to the DIR input */
   int enablePin;        /*> Pin connected to the ENA input */
-} motorProperties;
+  int inPositionPin;    /*> Pin connected to the PED input */
+} ProtoEJ2640Properties;
 
 /**************************************************************************/
 /*!
@@ -46,7 +47,7 @@ public:
   ProtoEJ2640Motor() {}
 
   // Init
-  void begin(motorProperties *motor)
+  void begin(ProtoEJ2640Properties *motor)
   {
     _motor = motor;
 
