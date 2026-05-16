@@ -38,7 +38,7 @@ enum MotorDriver
     VIRTUAL,
     GENERIC_STEPPER,
     OSSM_REF_BOARD_V2,
-    PROTO_EJ2640,
+    PROTO_EJ2640_BOARD,
     IHSV_SERVO_V6
 };
 
@@ -101,8 +101,8 @@ public:
         case OSSM_REF_BOARD_V2:
             root["driver"] = "OSSM_REF_BOARD_V2";
             break;
-        case PROTO_EJ2640:
-            root["driver"] = "PROTO_EJ2640";
+        case PROTO_EJ2640_BOARD:
+            root["driver"] = "PROTO_EJ2640_BOARD";
             break;
         default:
             root["driver"] = "VIRTUAL";
@@ -120,7 +120,7 @@ public:
         drivers.add("OSSM_REF_BOARD_V2");
 #endif
 #ifdef DRIVER_PROTO_EJ2640
-        drivers.add("PROTO_EJ2640");
+        drivers.add("PROTO_EJ2640_BOARD");
 #endif
 
         root["steps_per_rev"] = settings.stepPerRev;
@@ -174,9 +174,9 @@ public:
         }
 #endif
 #ifdef DRIVER_PROTO_EJ2640
-        else if (driver == "PROTO_EJ2640")
+        else if (driver == "PROTO_EJ2640_BOARD")
         {
-            settings.driver = PROTO_EJ2640;
+            settings.driver = PROTO_EJ2640_BOARD;
         }
 #endif
         else

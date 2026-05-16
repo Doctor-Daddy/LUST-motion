@@ -47,9 +47,9 @@ public:
   ProtoEJ2640Motor() {}
 
   // Init
-  void begin(ProtoEJ2640Properties *motor)
+  void begin(ProtoEJ2640Properties *ProtoEJ2640)
   {
-    _motor = motor;
+    _motor = ProtoEJ2640;
 
     // Setup FastAccelStepper
     engine.init();
