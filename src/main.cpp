@@ -1,55 +1,152 @@
 /**
- *   ESP32 SvelteKit
+ *   LUST-Motion
  *
- *   A simple, secure and extensible framework for IoT projects for ESP32 platforms
- *   with responsive Sveltekit front-end built with TailwindCSS and DaisyUI.
- *   https://github.com/theelims/ESP32-sveltekit
+ *   https://github.com/openlust/LUST-motion
  *
- *   Copyright (C) 2018 - 2023 rjwats
- *   Copyright (C) 2023 theelims
+ *   Copyright (C) 2025 theelims
  *
  *   All Rights Reserved. This software may be modified and distributed under
- *   the terms of the LGPL v3 license. See the LICENSE file for details.
+ *   the terms of the MIT license. See the LICENSE file for details.
  **/
 
 #include <ESP32SvelteKit.h>
-#include <LightMqttSettingsService.h>
-#include <LightStateService.h>
+#include <PsychicHttpServer.h>
+#include <StrokeEngine.h>
+#include <MqttBrokerSettingsService.h>
+#include <StrokeEngineControlService.h>
+#include <MotorConfigurationService.h>
+#include <StrokeEngineEnvironmentService.h>
+#include <StrokeEngineSafetyService.h>
+#include <SafeStateService.h>
+#include <RawDataStreaming.h>
+#include <StatusMonitor.h>
 
 #define SERIAL_BAUD_RATE 115200
 
-AsyncWebServer server(80);
-ESP32SvelteKit esp32sveltekit(&server);
+/*#################################################################################################
+##
+##    G L O B A L    D E F I N I T I O N S   &   D E C L A R A T I O N S
+##
+##################################################################################################*/
 
-LightMqttSettingsService lightMqttSettingsService =
-    LightMqttSettingsService(&server, esp32sveltekit.getFS(), esp32sveltekit.getSecurityManager());
+// StrokeEngine ###################################################################################
+StrokeEngine Stroker;
 
-LightStateService lightStateService = LightStateService(&server,
-                                                        esp32sveltekit.getSecurityManager(),
-                                                        esp32sveltekit.getMqttClient(),
-                                                        &lightMqttSettingsService);
+// ESP32-SvelteKit #################################################################################
+PsychicHttpServer server;
+
+ESP32SvelteKit esp32sveltekit(&server, 130);
+
+MqttBrokerSettingsService mqttBrokerSettingsService = MqttBrokerSettingsService(&server,
+                                                                                &esp32sveltekit);
+
+StrokeEngineControlService strokeEngineControlService = StrokeEngineControlService(&Stroker,
+                                                                                   &esp32sveltekit,
+                                                                                   &mqttBrokerSettingsService);
+
+MotorConfigurationService motorConfigurationService = MotorConfigurationService(&Stroker,
+                                                                                &esp32sveltekit);
+
+SafeStateService safeStateService = SafeStateService(&Stroker,
+                                                     &server,
+                                                     &esp32sveltekit,
+                                                     &mqttBrokerSettingsService);
+
+StrokeEngineSafetyService strokeEngineSafetyService = StrokeEngineSafetyService(&Stroker,
+                                                                                &esp32sveltekit,
+                                                                                &safeStateService);
+
+StrokeEngineEnvironmentService strokeEngineEnvironmentService = StrokeEngineEnvironmentService(&Stroker,
+                                                                                               &esp32sveltekit,
+                                                                                               &motorConfigurationService,
+                                                                                               &strokeEngineSafetyService,
+                                                                                               &mqttBrokerSettingsService);
+
+DataStreamer dataStream = DataStreamer(&esp32sveltekit, &Stroker);
+
+StatusMonitor statusMonitor = StatusMonitor(&esp32sveltekit);
+
+/*#################################################################################################
+##
+##    C A L L B A C K S
+##
+##################################################################################################*/
+
+// None
+
+/*#################################################################################################
+##
+##    T A S K S
+##
+##################################################################################################*/
+
+// None
+
+/*#################################################################################################
+##
+##    I S R ' S
+##
+##################################################################################################*/
+
+// None
+
+/*#################################################################################################
+##
+##    F U N C T I O N S
+##
+##################################################################################################*/
+
+// None
+
+/*#################################################################################################
+##
+##    M A I N   P R O G R A M
+##
+##################################################################################################*/
 
 void setup()
 {
-    // start serial and filesystem
+    // start serial communication
     Serial.begin(SERIAL_BAUD_RATE);
 
-    // start the framework and demo project
-    esp32sveltekit.setMDNSAppName("ESP32 SvelteKit Demo App");
+    // start ESP32-SvelteKit
     esp32sveltekit.begin();
+    statusMonitor.begin();
 
-    // load the initial light settings
-    lightStateService.begin();
+    // start mDNS
+    MDNS.addService("LUST-Service", "tcp", 80);
+    MDNS.addServiceTxt("LUST-Service", "tcp", "FirmwareVersion", APP_VERSION);
+    MDNS.addServiceTxt("LUST-Service", "tcp", "DeviceID", SettingValue::format("LUST-motion-#{unique_id}"));
+    MDNS.addServiceTxt("LUST-Service", "tcp", "Service", "LUST-motion");
 
-    // start the light service
-    lightMqttSettingsService.begin();
+    // Start motor control service
+    motorConfigurationService.begin();
 
-    // start the server
-    server.begin();
+    // Start the raw data streaming service
+    dataStream.begin();
+
+    // start the stroke engine control service
+    strokeEngineControlService.begin();
+
+    // Start the MQTT broker settings service
+    mqttBrokerSettingsService.begin();
+
+    // Start the stroke engine safety service
+    strokeEngineSafetyService.begin();
+
+    // Start the stroke engine environment service
+    strokeEngineEnvironmentService.begin();
+
+    // Start the safe state & watchdog service
+    safeStateService.begin();
+
+    // Add loop callbacks to ESP32-SvelteKit
+    esp32sveltekit.addLoopFunction([]()
+                                   { statusMonitor.loop(); });
 }
 
 void loop()
 {
-    // Delete Arduino loop task, as it is not needed in this example
+    // Delete Arduino loop task, as it is not needed in this application
     vTaskDelete(NULL);
 }
