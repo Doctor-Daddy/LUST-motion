@@ -34,11 +34,11 @@ typedef struct
 /**************************************************************************/
 /*!
   @brief  ProtoEJ2640Motor inherits from MotorInterface and provides a generic
-  STEP/DIR interface to all common stepper and servo drivers. Under the hood
-  it uses FastAccelStepper for the trapezoidal motion planning and the
-  hardware step signal generation. The ProtoEJ2640Motor class uses a physical
-  end switch for homing. However, the homing procedure is written in a way
-  that derived classes may simply provide other signal inputs for homing.
+  STEP/DIR interface tuned for EJ2640-driven heavy duty machine.
+  Potentially useful for any common stepper (and servo?) drivers. 
+  Uses FastAccelStepper for trapezoidal motion planning and hardware step signal generation. 
+  The ProtoEJ2640Motor class uses a physical endstop switch for homing.
+  However, the homing procedure readily adaptablee to other homing signal inputs.
 */
 /**************************************************************************/
 class ProtoEJ2640Motor : public MotorInterface
@@ -401,7 +401,7 @@ private:
 
   /**************************************************************************/
   FastAccelStepper *_stepper;
-  motorProperties *_motor;
+  ProtoEJ2640Properties *_motor;
   FastAccelStepperEngine engine = FastAccelStepperEngine();
   int _stepsPerMillimeter = 50;
   int _minStep;

@@ -52,7 +52,7 @@ void MotorConfigurationService::begin()
         _motor = static_cast<MotorInterface *>(OSSMMotorInstance);
         _loadedDriver = OSSM_REF_BOARD_V2;
         break;
-    case PROTO_EJ2640:
+    case PROTO_EJ2640_BOARD:
         ESP_LOGI("MotorConfigurationService", "Using Proto-EJ2640 Configuration");
         ProtoEJ2640MotorInstance = new ProtoEJ2640Motor();
         ProtoEJ2640MotorInstance->begin(&ProtoEJ2640MotorProperties);
@@ -60,7 +60,7 @@ void MotorConfigurationService::begin()
         ProtoEJ2640MotorInstance->setStepsPerMillimeter(_state.stepPerRev / (_state.pulleyTeeth * BELT_PITCH));
         ProtoEJ2640MotorInstance->invertDirection(_state.invertDirection);
         _motor = static_cast<MotorInterface *>(ProtoEJ2640MotorInstance);
-        _loadedDriver = PROTO_EJ2640;
+        _loadedDriver = PROTO_EJ2640_BOARD;
         break;
     default: // is also case VIRTUAL
         ESP_LOGI("MotorConfigurationService", "Using VirtualMotor");
@@ -185,7 +185,7 @@ String MotorConfigurationService::getDriverName()
         return "GENERIC_STEPPER";
     case OSSM_REF_BOARD_V2:
         return "OSSM_REF_BOARD_V2";
-    case PROTO_EJ2640:
+    case PROTO_EJ2640_BOARD:
         return "PROTO_EJ2640";
     default:
         return "VIRTUAL";

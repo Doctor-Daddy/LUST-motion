@@ -10,12 +10,12 @@
 #include <virtualMotor.h>
 #include <genericStepper.h>
 #include <OSSMRefBoardV2.h>
-#include <ProtoEJ2640.h>
+#include <ProtoEJ2640Motor.h>
 
 #ifdef OSSM_REF
 #include <OSSMReferenceBoard.h>
 #elif defined(PROTO_EJ2640)
-#include <ProtoEJ2640.h>
+#include <ProtoEJ2640Board.h>
 // else throw compile error
 #else
 #error "No board defined"
@@ -26,7 +26,7 @@
 #endif
 
 #ifndef MOTION_HOMING_SPEED
-#define MOTION_HOMING_SPEED 5.0
+#define MOTION_HOMING_SPEED 2.0
 #endif
 
 #define MOTOR_CONFIG_FILE "/config/motorConfig.json"

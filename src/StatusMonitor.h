@@ -12,7 +12,12 @@
 
 #include <ESP32SvelteKit.h>
 #include <Arduino.h>
+#ifdef OSSM_REF
 #include <OSSMReferenceBoard.h>
+#elif defined(PROTO_EJ2640)
+#include <ProtoEJ2640Board.h>
+#endif
+
 #include <FastLED.h>
 
 #define smTAG "StatusMonitor"

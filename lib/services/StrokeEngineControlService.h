@@ -15,8 +15,8 @@
 
 #ifdef OSSM_REF
 #include <OSSMReferenceBoard.h>
-#elifdef PROTO_EJ2640
-#include <ProtoEJ2640.h>
+#elif defined(PROTO_EJ2640)
+#include <ProtoEJ2640Board.h>
 // else throw compile error
 #else
 #error "No board defined"

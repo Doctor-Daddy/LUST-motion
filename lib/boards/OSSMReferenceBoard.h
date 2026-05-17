@@ -67,5 +67,5 @@
 #define MAX_VOLTAGE 40.0                // maximum range voltage sensor in Volt
 
 // Available motor drivers - VIRTUAL driver is enabled by default
-#define DRIVER_GENERIC_STEPPER   // Generic stepper driver with endstop switch
+// #define DRIVER_GENERIC_STEPPER   // Generic stepper driver with endstop switch
 // #define DRIVER_OSSM_REF_BOARD_V2 // OSSM Reference Board V2 with sensorless homing via current sensor

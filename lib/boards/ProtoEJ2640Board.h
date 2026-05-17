@@ -19,7 +19,7 @@
 #define KEEP_OUT 5.0            // keep out distance in mm (??????)
 #define SENSORLESS_TRIGGER 5.0  // trigger percentage for sensorless homing (Torque or Current) (??????)
 #define BELT_PITCH 5.08            // belt pitch in mm
-#define MAX_RPM 300.0          // maximum RPM
+#define MAX_RPM 60 //300.0          // maximum RPM
 #define MAX_ACCELERATION 10000 // maximum acceleration in mm/s^2 -- probably 1500-3000-8000-10000
 #define ENABLE_ACTIVE_LOW true  // enable pin is active low
 
@@ -36,12 +36,12 @@
 #define MODBUS_TX_PIN -1   // modbus tx pin (??????)
 #define NEOPIXEL_PIN 38    // neopixel data pin
 
-// Current sensor properties -- kept only to satisfy references if any code compiles them
-#define AMPERE_PER_MILLIVOLT 2.5e-3     // ADC conversion factor current reading: 2.5mA per mV
-#define AMPERE_OFFSET_IN_MILLIVOLT 1666 // ADC offset in mV for 0A
-#define VOLT_PER_MILLIVOLT 4.0e-2       // ADC conversion factor voltage reading: 40mV per V
-#define MAX_AMPERE 5.0                  // maximum range current sensor in Ampere
-#define MAX_VOLTAGE 40.0                // maximum range voltage sensor in Volt
+// Current sensor properties -- As it turns out, you do need these to exist even if not used.
+#define AMPERE_PER_MILLIVOLT -1     // ADC conversion factor current reading: 2.5mA per mV
+#define AMPERE_OFFSET_IN_MILLIVOLT -1 // ADC offset in mV for 0A
+#define VOLT_PER_MILLIVOLT -1       // ADC conversion factor voltage reading: 40mV per V
+#define MAX_AMPERE -1                  // maximum range current sensor in Ampere
+#define MAX_VOLTAGE -1                // maximum range voltage sensor in Volt
 
 // Available motor drivers - VIRTUAL driver is enabled by default
 #define DRIVER_PROTO_EJ2640
