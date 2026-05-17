@@ -21,7 +21,7 @@
 #define BELT_PITCH 5.08            // belt pitch in mm
 #define MAX_RPM 60 //300.0          // maximum RPM
 #define MAX_ACCELERATION 10000 // maximum acceleration in mm/s^2 -- probably 1500-3000-8000-10000
-#define ENABLE_ACTIVE_LOW true  // enable pin is active low
+#define ENABLE_ACTIVE_LOW false  // enable pin is active low
 
 // Pin definitions
 #define STEP_PIN 48        // step pin
