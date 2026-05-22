@@ -1,12 +1,4 @@
 #pragma once
-/**
- *   LUST-motion
- *
- *   Copyright (C) 2025 theelims
- *
- *   All Rights Reserved. This software may be modified and distributed under
- *   the terms of the MIT license. See the LICENSE file for details.
- **/
 
 #include <ESP32SvelteKit.h>
 #include <ArduinoJson.h>

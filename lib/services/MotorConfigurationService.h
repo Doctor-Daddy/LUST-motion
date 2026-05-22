@@ -22,11 +22,11 @@
 #endif
 
 #ifndef MOTION_FACTORY_TRAVEL
-#define MOTION_FACTORY_TRAVEL 150.0
+#define MOTION_FACTORY_TRAVEL 200.0
 #endif
 
 #ifndef MOTION_HOMING_SPEED
-#define MOTION_HOMING_SPEED 2.0
+#define MOTION_HOMING_SPEED 5.0
 #endif
 
 #define MOTOR_CONFIG_FILE "/config/motorConfig.json"

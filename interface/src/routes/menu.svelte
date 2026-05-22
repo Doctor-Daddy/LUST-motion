@@ -230,6 +230,7 @@
 
 	<div class="divider my-0"></div>
 	<div class="flex items-center">
+		<!--
 		{#if github.active}
 			<a href={github.href} class="btn btn-ghost" target="_blank" rel="noopener noreferrer"
 				><Github class="h-5 w-5" /></a
@@ -240,6 +241,7 @@
 				><Discord class="h-5 w-5" /></a
 			>
 		{/if}
+		-->
 		<div class="inline-flex grow items-center justify-end text-sm">
 			<Copyright class="h-4 w-4" /><span class="px-2">{page.data.copyright}</span>
 		</div>
