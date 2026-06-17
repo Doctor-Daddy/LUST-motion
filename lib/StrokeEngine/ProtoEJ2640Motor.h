@@ -15,6 +15,8 @@
 
 #include "StrokeEngineMotor.h"
 
+using ProtoMeasureCallbackType = std::function<void(bool)>;
+
 /**************************************************************************/
 /*!
   @brief  Struct defining the motor (stepper or servo with STEP/DIR
@@ -28,7 +30,6 @@ typedef struct
   int stepPin;          /*> Pin connected to the STEP input */
   int directionPin;     /*> Pin connected to the DIR input */
   int enablePin;        /*> Pin connected to the ENA input */
-  int inPositionPin;    /*> Pin connected to the PED input */
 } ProtoEJ2640Properties;
 
 /**************************************************************************/
@@ -37,8 +38,9 @@ typedef struct
   STEP/DIR interface tuned for EJ2640-driven heavy duty machine.
   Potentially useful for any common stepper (and servo?) drivers. 
   Uses FastAccelStepper for trapezoidal motion planning and hardware step signal generation. 
-  The ProtoEJ2640Motor class uses a physical endstop switch for homing.
-  However, the homing procedure readily adaptablee to other homing signal inputs.
+  The ProtoEJ2640Motor class uses a physical endstop switch at home position for homing. 
+  It also implements a physical endstop switch at END position (maximum extent of travel) for
+  future features to measure travel length and for safety during operation.
 */
 /**************************************************************************/
 class ProtoEJ2640Motor : public MotorInterface
@@ -118,7 +120,7 @@ public:
     @param speed Speed of the homing procedure in [mm/s]. Default is 5.0.
   */
   /**************************************************************************/
-  void setSensoredHoming(int homePin, uint8_t arduinoPinMode = INPUT_PULLDOWN, bool activeLow = true, float homePosition = 0.0, float speed = 5.0) // Assumes always homing to back of machine for safety
+  void setSensoredHoming(int homePin, uint8_t arduinoPinMode = INPUT, bool activeLow = false, float homePosition = 0.0, float speed = 5.0) // Assumes always homing to back of machine for safety
   {
     // set homing pin as input
     _homingPin = homePin;
@@ -128,6 +130,50 @@ public:
     _homingSpeed = speed * _stepsPerMillimeter;
     ESP_LOGI("ProtoEJ2640", "Homing switch on pin %i in pin mode %i is %s", _homingPin, arduinoPinMode, _homingActiveLow ? "active low" : "active high");
     ESP_LOGI("ProtoEJ2640", "Search home with %05.1f mm/s at %05.1f mm.", speed, homePosition);
+  }
+
+  void setMaxEndstop(int maxEndstopPin, uint8_t arduinoPinMode = INPUT, bool activeLow = false)
+  {
+    _maxEndstopPin = maxEndstopPin;
+    pinMode(_maxEndstopPin, arduinoPinMode);
+    _maxEndstopActiveLow = activeLow;
+    ESP_LOGI("ProtoEJ2640", "Max endstop switch on pin %i in pin mode %i is %s", _maxEndstopPin, arduinoPinMode, _maxEndstopActiveLow ? "active low" : "active high");
+  }
+
+  /**************************************************************************/
+  /*!
+   @brief Measures travel from the home endstop to the max endstop.
+   @param callBackMeasuring Callback called when measuring completes. The bool
+   argument is true if the max endstop was found.
+   @param keepout Soft endstop distance in mm.
+  */
+  /**************************************************************************/
+  void measureRailLength(ProtoMeasureCallbackType callBackMeasuring, float keepout = 5.0)
+  {
+    if (_error || _enabled == false || motionCompleted() == false || _maxEndstopPin < 0)
+    {
+      ESP_LOGE("ProtoEJ2640", "Rail measurement not possible!");
+      if (callBackMeasuring != NULL)
+      {
+        callBackMeasuring(false);
+      }
+      return;
+    }
+
+    _callBackMeasuring = callBackMeasuring;
+    _keepout = keepout;
+
+    ESP_LOGI("ProtoEJ2640", "Measuring rail length...");
+
+    xTaskCreatePinnedToCore(
+        this->_measureProcedureImpl,
+        "Measuring",
+        4096,
+        this,
+        1,
+        &_taskMeasuringHandle,
+        1);
+    ESP_LOGD("ProtoEJ2640", "Created Measuring Task.");
   }
 
   /**************************************************************************/
@@ -205,6 +251,13 @@ public:
       ESP_LOGD("ProtoEJ2640", "Deleted Homing Task.");
     }
 
+    if (_taskMeasuringHandle != NULL)
+    {
+      vTaskDelete(_taskMeasuringHandle);
+      _taskMeasuringHandle = NULL;
+      ESP_LOGD("ProtoEJ2640", "Deleted Measuring Task.");
+    }
+
     // Suspend motion feedback task if it exists already
     if (_taskPositionFeedbackHandle != NULL)
     {
@@ -230,6 +283,13 @@ public:
       ESP_LOGD("ProtoEJ2640", "Deleted Homing Task: %p", _taskHomingHandle);
       vTaskDelete(_taskHomingHandle);
       _taskHomingHandle = NULL;
+    }
+
+    if (_taskMeasuringHandle != NULL)
+    {
+      ESP_LOGD("ProtoEJ2640", "Deleted Measuring Task: %p", _taskMeasuringHandle);
+      vTaskDelete(_taskMeasuringHandle);
+      _taskMeasuringHandle = NULL;
     }
 
     if (_stepper->isRunning())
@@ -316,28 +376,29 @@ private:
     }
   }
 
-  bool _queryHome()
-  {
+  bool _queryHome() {
     ESP_LOGV("ProtoEJ2640", "Querying homing switch.");
     return (digitalRead(_homingPin) == !_homingActiveLow) ? true : false;
   }
 
-  void _homingProcedure()
-  {
+  bool _queryMaxEndstop() {
+    ESP_LOGV("ProtoEJ2640", "Querying max endstop switch.");
+    return (digitalRead(_maxEndstopPin) == !_maxEndstopActiveLow) ? true : false;
+  }
+
+  void _homingProcedure() {
     // Set feedrate for homing
     _stepper->setSpeedInHz(_homingSpeed);
     _stepper->setAcceleration(_maxStepAcceleration);
 
     // Check if we are already at the home position
-    if (_queryHome())
-    {
+    if (_queryHome()) {
       ESP_LOGD("ProtoEJ2640", "Already at home position. Backing up and try again.");
       // back off 2*keepout from switch
       _stepper->move(_stepsPerMillimeter * 2 * _keepout);
 
       // wait for move to complete
-      while (_stepper->isRunning())
-      {
+      while (_stepper->isRunning()) {
         // Pause the task for 100ms while waiting for move to complete
         vTaskDelay(100 / portTICK_PERIOD_MS);
       }
@@ -345,32 +406,30 @@ private:
       // move back towards endstop
       _stepper->move(-_stepsPerMillimeter * 4 * _keepout);
     }
-    else
-    {
+    else {
       ESP_LOGD("ProtoEJ2640", "Start searching for home.");
       // Move maximum travel distance + 2*keepout towards the homing switch
       _stepper->move(-_stepsPerMillimeter * (_maxPosition + 4 * _keepout));
     }
 
     // Poll homing switch
-    while (_stepper->isRunning())
-    {
+    while (_stepper->isRunning()) {
 
       // Are we at the home position?
-      if (_queryHome())
-      {
+      if (_queryHome()) {
         ESP_LOGD("ProtoEJ2640", "Found home!");
         // Set home position
         // Switch is at -KEEPOUT
         _stepper->forceStopAndNewPosition(_stepsPerMillimeter * int(_homePosition - _keepout));
 
         // drive free of switch and set axis to lower end
-        _stepper->moveTo(_minStep);
+        _stepper->moveTo(_minStep); // equivalent to _stepper->moveTo(0);
+
+        while (_stepper->isRunning()) {
+            vTaskDelay(20 / portTICK_PERIOD_MS);
+        }
 
         _homed = true;
-
-        // drive free of switch and set axis to 0
-        _stepper->moveTo(0);
 
         // Break loop, home was found
         break;
@@ -381,15 +440,13 @@ private:
     }
 
     // disable Servo if homing has not found the homing switch
-    if (!_homed)
-    {
+    if (!_homed) {
       _stepper->disableOutputs();
       ESP_LOGE("ProtoEJ2640", "Homing failed! Did not find home position.");
     }
 
     // Call notification callback, if it was defined.
-    if (_callBackHoming != NULL)
-    {
+    if (_callBackHoming != NULL) {
       _callBackHoming();
     }
 
@@ -397,6 +454,80 @@ private:
     _taskHomingHandle = NULL;
     vTaskDelete(NULL);
     ESP_LOGV("ProtoEJ2640", "Homing task self-terminated");
+  }
+
+  void _measureProcedure() {
+    bool measured = false;
+
+    TaskHandle_t measuringTaskHandle = _taskMeasuringHandle;
+    _taskMeasuringHandle = NULL;
+    home();
+    _taskMeasuringHandle = measuringTaskHandle;
+
+    while (_taskHomingHandle != NULL)
+    {
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+
+    if (!_homed)
+    {
+      ESP_LOGE("ProtoEJ2640", "Rail measurement failed because homing failed.");
+      if (_callBackMeasuring != NULL)
+      {
+        _callBackMeasuring(false);
+      }
+      _taskMeasuringHandle = NULL;
+      vTaskDelete(NULL);
+      return;
+    }
+
+    _stepper->setSpeedInHz(_homingSpeed);
+    _stepper->setAcceleration(_maxStepAcceleration);
+
+    float searchDistance = 2000.0f; // Max search distance. Machine stops when MAX_ENDSTOP_PIN triggers. This is just a fault bound - assumes all machines have travel < 2000 mm.
+
+    ESP_LOGI("ProtoEJ2640", "Start measuring rail length toward max endstop...");
+    _stepper->move(int(0.5f + searchDistance * _stepsPerMillimeter));
+
+    while (_stepper->isRunning())
+    {
+      if (_queryMaxEndstop())
+      {
+        _stepper->stopMove();
+        while (_stepper->isRunning())
+        {
+          vTaskDelay(20 / portTICK_PERIOD_MS);
+        }
+
+        float travel = getPosition() + _keepout;
+        float roundedTravel = floor(travel);
+        float adjustedKeepout = (roundedTravel - floor((roundedTravel - 2.0f * _keepout) * 0.1f) * 10.0f) / 2.0f;
+
+        ESP_LOGI("ProtoEJ2640", "Measured rail length: %.2f mm (%.2f in), rounded to %.1f mm", travel, travel / 25.4f, roundedTravel);
+        ESP_LOGI("ProtoEJ2640", "Adjusted keepout: %.2f mm", adjustedKeepout);
+
+        setMachineGeometry(roundedTravel, adjustedKeepout);
+        _stepper->moveTo(_maxStep);
+        measured = true;
+        break;
+      }
+
+      vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+
+    if (!measured)
+    {
+      ESP_LOGE("ProtoEJ2640", "Rail measurement failed! Did not find max endstop.");
+    }
+
+    if (_callBackMeasuring != NULL)
+    {
+      _callBackMeasuring(measured);
+    }
+
+    _taskMeasuringHandle = NULL;
+    vTaskDelete(NULL);
+    ESP_LOGV("ProtoEJ2640", "Measuring task self-terminated");
   }
 
   /**************************************************************************/
@@ -409,11 +540,16 @@ private:
   int _maxStepPerSecond;
   int _maxStepAcceleration;
   static void _homingProcedureImpl(void *_this) { static_cast<ProtoEJ2640Motor *>(_this)->_homingProcedure(); }
+  static void _measureProcedureImpl(void *_this) { static_cast<ProtoEJ2640Motor *>(_this)->_measureProcedure(); }
   unsigned int _homingSpeed;
   float _homePosition;
   int _homingPin = -1;
   bool _homingActiveLow; /*> Polarity of the homing signal*/
+  int _maxEndstopPin = -1;
+  bool _maxEndstopActiveLow; /*> Polarity of the max endstop signal*/
   TaskHandle_t _taskHomingHandle = NULL;
+  TaskHandle_t _taskMeasuringHandle = NULL;
+  ProtoMeasureCallbackType _callBackMeasuring = NULL;
 };
 
 #endif // PROTO_EJ2640_H

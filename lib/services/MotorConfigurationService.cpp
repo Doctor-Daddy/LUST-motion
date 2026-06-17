@@ -56,7 +56,8 @@ void MotorConfigurationService::begin()
         ESP_LOGI("MotorConfigurationService", "Using Proto-EJ2640 Configuration");
         ProtoEJ2640MotorInstance = new ProtoEJ2640Motor();
         ProtoEJ2640MotorInstance->begin(&ProtoEJ2640MotorProperties);
-        ProtoEJ2640MotorInstance->setSensoredHoming(ENDSTOP_PIN, INPUT, false, 0.0, 2);
+        ProtoEJ2640MotorInstance->setSensoredHoming(MIN_ENDSTOP_PIN, INPUT, false, 0.0, MOTION_HOMING_SPEED);
+        ProtoEJ2640MotorInstance->setMaxEndstop(MAX_ENDSTOP_PIN, INPUT, false);
         ProtoEJ2640MotorInstance->setStepsPerMillimeter(_state.stepPerRev / (_state.pulleyTeeth * BELT_PITCH));
         ProtoEJ2640MotorInstance->invertDirection(_state.invertDirection);
         _motor = static_cast<MotorInterface *>(ProtoEJ2640MotorInstance);
@@ -155,6 +156,35 @@ void MotorConfigurationService::onConfigUpdated(String originId)
                                              // done
                                          },
                                          _state.keepout);
+        }
+        else if (_loadedDriver == PROTO_EJ2640_BOARD)
+        {
+            ProtoEJ2640Motor *ProtoMotor = static_cast<ProtoEJ2640Motor *>(_motor);
+            ProtoMotor->measureRailLength([&](bool measured)
+                                          {
+                                              if (measured)
+                                              {
+                                                  float travelMm = _motor->getTravel();
+                                                  float travelIn = travelMm / 25.4f;
+                                                  char message[96];
+                                                  snprintf(message, sizeof(message), "Measured travel: %.1f mm (%.2f in)", travelMm, travelIn);
+                                                  _notification->pushNotification(message, pushType::PUSHSUCCESS);
+                                              }
+                                              else
+                                              {
+                                                  _notification->pushNotification("Travel measurement failed", pushType::PUSHERROR);
+                                              }
+
+                                              update([&](MotorConfiguration &state)
+                                                     {   if (measured)
+                                                         {
+                                                             state.travel = _motor->getTravel();
+                                                             state.keepout = _motor->getKeepout();
+                                                         }
+                                                         state.measureTravel = false;
+                                                         return StateUpdateResult::CHANGED; },
+                                                     "measurement"); },
+                                          _state.keepout);
         }
         else
         {

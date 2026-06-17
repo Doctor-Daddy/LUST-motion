@@ -68,7 +68,6 @@ static ProtoEJ2640Properties ProtoEJ2640MotorProperties{
     .stepPin = STEP_PIN,
     .directionPin = DIRECTION_PIN,
     .enablePin = ENABLE_PIN,
-    .inPositionPin = IN_POSITION_PIN,
 };
 
 

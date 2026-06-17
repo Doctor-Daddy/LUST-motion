@@ -213,6 +213,10 @@
 		});
 	}
 
+	function canMeasureTravel() {
+		return motorConfig.driver === 'OSSM_REF_BOARD_V2' || motorConfig.driver === 'PROTO_EJ2640_BOARD';
+	}
+
 	function preventDefault(fn) {
 		return function (event) {
 			event.preventDefault();
@@ -401,7 +405,7 @@
 								class="btn btn-primary inline-flex items-center"
 								onclick={confirmMeasure}
 								type="button"
-								disabled={!(motorConfig.driver === 'OSSM_REF_BOARD_V2')}
+								disabled={!canMeasureTravel()}
 							>
 								<Measure class="mr-2 h-5 w-5" />
 								<span>Measure Travel</span>

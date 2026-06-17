@@ -20,6 +20,7 @@
 
 	let travel = $state(0);
 	let keepout = $state(0);
+	let travelInches = $derived(travel / 25.4);
 
 	const interval = setInterval(async () => {
 		pollingResults();
@@ -70,7 +71,7 @@
 					</div>
 				{:else}
 					<div class="flex flex-col items-center justify-center p-6">
-						<p class="mt-8 text-2xl">Travel: {travel} mm</p>
+						<p class="mt-8 text-2xl">Travel: {travel} mm ({travelInches.toFixed(2)} in)</p>
 						<p class="mt-8 text-2xl">Keepout: {keepout} mm</p>
 					</div>
 				{/if}

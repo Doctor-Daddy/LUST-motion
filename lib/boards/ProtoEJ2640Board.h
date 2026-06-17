@@ -28,8 +28,10 @@
 #define DIRECTION_PIN 47   // direction pin
 #define ENABLE_PIN 21      // enable pin
 #define ALARM_PIN -1       // alarm pin (??????)
-#define IN_POSITION_PIN 41  // in position pin (??????)
-#define ENDSTOP_PIN 42     // endstop pin
+#define MIN_ENDSTOP_PIN 42 // HOME position endstop pin
+#define MAX_ENDSTOP_PIN 41 // END  position endstop pin
+#define ENDSTOP_PIN MIN_ENDSTOP_PIN // transition def
+#define IN_POSITION_PIN MAX_ENDSTOP_PIN // transition def
 #define ADC_PIN_CURRENT -1 // current sensor ADC pin (??????)
 #define ADC_PIN_VOLTAGE -1 // voltage sensor ADC pin (??????)
 #define MODBUS_RX_PIN -1   // modbus rx pin (??????)
