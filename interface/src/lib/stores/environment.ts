@@ -2,9 +2,9 @@ import { writable } from 'svelte/store';
 import type { Environment } from '$lib/types/models';
 
 let environment_data: Environment = {
-	depth: 150,
-	max_rate: 240,
-	max_velocity: 2000,
+	depth: 225,
+	max_rate: 600,
+	max_velocity: 4064,
 	heartbeat_mode: 0,
 	patterns: <string[]>[],
 	max_current: 5,

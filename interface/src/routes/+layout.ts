@@ -9,9 +9,9 @@ export const load = (async ({ fetch }) => {
 	const item = await result.json();
 	return {
 		features: item,
-		title: 'LUST-motion',
+		title: 'EJ2640 Platform - Fucking Machine',
 		github: 'doctor-daddy/LUST-motion',
 		copyright: '2018 Doctor Daddy',
-		appName: 'LUST-motion'
+		appName: 'EJ2640 Platform - Fucking Machine'
 	};
 }) satisfies LayoutLoad;

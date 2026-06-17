@@ -1,4 +1,19 @@
 <script lang="ts">
+	interface Props {
+		chartHeight?: number;
+		chartDurationMs?: number;
+		chartSpeedRange?: number;
+	}
+
+	let {
+		chartHeight = 1.0,
+		chartDurationMs = 10000,
+		chartSpeedRange = 4100
+	}: Props = $props();
+
+	const BASE_CHART_HEIGHT = 368;
+	let chartContainerHeight = $derived(`${Math.round(BASE_CHART_HEIGHT * chartHeight)}px`);
+
 	import type { PageData } from './$types';
 	import { page } from '$app/state';
 	import { safeStateHeartbeat } from '$lib/stores/safestate';
@@ -87,8 +102,8 @@
 				plugins: {
 					// Change options for ALL axes of THIS CHART
 					streaming: {
-						duration: 10000,
-						refresh: 25,
+						duration: chartDurationMs,
+						refresh: 50,
 						delay: 100
 					},
 					tooltip: {
@@ -119,10 +134,10 @@
 						},
 						position: 'left',
 						min: 0,
-						max: 150,
+						max: 225,
 						grid: { color: daisyColor('--color-base-content', 10) },
 						ticks: {
-							stepSize: 150 / 6,
+							stepSize: 25,
 							color: daisyColor('--color-base-content')
 						},
 						border: { color: daisyColor('--color-base-content', 10) }
@@ -139,10 +154,10 @@
 							}
 						},
 						position: 'right',
-						suggestedMin: -150,
-						suggestedMax: 150,
+						suggestedMin: -chartSpeedRange,
+						suggestedMax: chartSpeedRange,
 						ticks: {
-							stepSize: 150 / 3,
+							stepSize: Math.round(chartSpeedRange / 4),
 							color: daisyColor('--color-base-content')
 						},
 						grid: {
@@ -154,6 +169,20 @@
 			}
 		});
 	}
+
+	$effect(() => {
+		if (!positionChart) return;
+
+		const scales = positionChart.options.scales as any;
+		scales.x.realtime.duration = chartDurationMs;
+		scales.y1.suggestedMin = -chartSpeedRange;
+		scales.y1.suggestedMax = chartSpeedRange;
+		scales.y1.ticks.stepSize = Math.round(chartSpeedRange / 4);
+
+		positionChart.resize();
+		positionChart.update('none');
+	});
+
 </script>
 
 <div class="card bg-base-200 shadow-md shadow-primary/50 mx-auto w-11/12">
@@ -174,7 +203,7 @@
 			</div>
 		</div>
 	{:else}
-		<div class="relative h-72 md:h-96 w-full p-2">
+		<div class="relative w-full p-2" style:height={chartContainerHeight}>
 			<canvas bind:this={positionChartElement}></canvas>
 		</div>
 	{/if}
